@@ -92,6 +92,7 @@ Los endpoints existen y ya están protegidos por rol; su lógica no: responden `
 - Rutas con middleware `jwt` / `jwt:RESIDENTE,ADMIN` en `routes/api.php`; JWT en `src/Infrastructure/Security/KeycloakJwtVerificador.php` (JWKS en caché); middleware en `src/Infrastructure/Http/Middleware/ProtegerConJwt.php`; errores problem+json en `Http/Problema.php`.
 - El esquema SQL y sus pruebas (`tests/db/pruebas_reglas_bd.sql`) ya existían y pasan con la migración. Los tests de arquitectura impiden `Illuminate` en `Domain` y `Application`.
 - Comandos: `composer install`, `cp .env.example .env && php artisan key:generate`, `php artisan migrate`, `vendor/bin/pest` (31 tests, incluido el de contrato con `reservas.yaml`), `vendor/bin/phpstan analyse` (nivel 8), `vendor/bin/pint --test`. En XAMPP los tests necesitan `openssl.cnf` (el helper lo busca junto al binario de PHP). Con el 5432 ocupado: `DB_PORT=5433`.
+- Contenedor y CI (16/10/2026): `Dockerfile` en la raíz del repo; `infra/docker-compose.apps.yml` lo levanta junto al resto; `.github/workflows/ci.yml` corre las pruebas y publica la imagen en GHCR desde `main`.
 
 ## Código funcional protegido (obligatorio)
 
