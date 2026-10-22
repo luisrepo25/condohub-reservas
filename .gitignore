@@ -21,3 +21,10 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+.env.*
+!.env.example
+/storage/logs
+.DS_Store
+Thumbs.db
+*.log
