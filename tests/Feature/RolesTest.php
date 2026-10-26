@@ -1,6 +1,6 @@
 <?php
 
-// Matriz rol × endpoint. Permitido ⇒ llega a la lógica (hoy 501); no permitido ⇒ 403; sin token ⇒ 401.
+// Matriz rol × endpoint. Permitido ⇒ llega a la lógica (ni 401 ni 403); no permitido ⇒ 403; sin token ⇒ 401.
 
 const UUID_X = '11111111-1111-4111-8111-111111111111';
 
@@ -21,8 +21,12 @@ it('cada rol solo usa lo que le toca', function (string $metodo, string $ruta, a
     foreach (['ADMIN', 'RESIDENTE', 'GUARDIA'] as $rol) {
         $r = $this->conRol([$rol])->json($metodo, $ruta);
 
-        expect($r->getStatusCode())->toBe(in_array($rol, $permitidos, true) ? 501 : 403, "{$rol} en {$metodo} {$ruta}");
-        expect($r->headers->get('Content-Type'))->toStartWith('application/problem+json');
+        if (in_array($rol, $permitidos, true)) {
+            expect($r->getStatusCode())->not->toBeIn([401, 403], "{$rol} en {$metodo} {$ruta}");
+        } else {
+            expect($r->getStatusCode())->toBe(403, "{$rol} en {$metodo} {$ruta}");
+            expect($r->headers->get('Content-Type'))->toStartWith('application/problem+json');
+        }
     }
 })->with('endpoints');
 
