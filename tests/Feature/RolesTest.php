@@ -31,7 +31,7 @@ it('cada rol solo usa lo que le toca', function (string $metodo, string $ruta, a
 })->with('endpoints');
 
 it('los 501 se identifican como NO_IMPLEMENTADO', function () {
-    $this->conRol(['ADMIN'])->getJson('/api/areas')->assertStatus(501)->assertJson(['code' => 'NO_IMPLEMENTADO']);
+    $this->conRol(['ADMIN'])->getJson('/api/sagas/requieren-revision')->assertStatus(501)->assertJson(['code' => 'NO_IMPLEMENTADO']);
 });
 
 it('un id que no es uuid no existe como ruta', function () {

@@ -1,5 +1,6 @@
 <?php
 
+use CondoHub\Reservas\Infrastructure\Http\Controllers\AreasController;
 use CondoHub\Reservas\Infrastructure\Http\Problema;
 use Illuminate\Support\Facades\Route;
 
@@ -10,7 +11,7 @@ Route::get('salud', fn () => response()->json(['servicio' => 'reservas', 'estado
     ->middleware('jwt');
 
 // R1: catálogo de áreas comunes.
-Route::get('areas', fn () => Problema::noImplementado('El catálogo de áreas'))
+Route::get('areas', AreasController::class)
     ->middleware('jwt');
 
 // R2–R5, R8, O6: solicitar reserva (inicia la saga). No se crean reservas offline.

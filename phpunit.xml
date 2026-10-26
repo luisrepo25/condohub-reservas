@@ -23,8 +23,8 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="LOG_CHANNEL" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <!-- <env name="DB_CONNECTION" value="sqlite"/> -->
-        <!-- <env name="DB_DATABASE" value=":memory:"/> -->
+        <!-- Base propia de las pruebas: nunca la de desarrollo. El CI define DB_DATABASE y se respeta. -->
+        <env name="DB_DATABASE" value="reservas_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
