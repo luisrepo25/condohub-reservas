@@ -74,14 +74,14 @@ final readonly class AreaComun
         }
     }
 
-    /**
-     * R1: los invitados no superan el aforo del área.
-     * TODO(regla): ¿el aforo incluye a los residentes de la unidad además de los invitados? Hoy cuenta solo invitados.
-     */
-    public function exigirAforo(int $cantidadInvitados): void
+    /** R1: el aforo cuenta a todas las personas, quien reserva más sus invitados, y es el límite. */
+    public function exigirAforo(int $personas): void
     {
-        if ($cantidadInvitados > $this->aforo) {
-            throw new ReglaNegocioViolada('R1', "{$this->nombre} admite hasta {$this->aforo} personas");
+        if ($personas > $this->aforo) {
+            throw new ReglaNegocioViolada(
+                'R1',
+                "{$this->nombre} admite hasta {$this->aforo} personas, contando a quien reserva ({$personas} pedidas)",
+            );
         }
     }
 

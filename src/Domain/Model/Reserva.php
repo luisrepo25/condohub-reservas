@@ -61,7 +61,7 @@ final class Reserva
     ): self {
         $area->exigirActiva();
         $area->exigirBloqueValido($bloque, $parametros->zonaHoraria);
-        $area->exigirAforo(count($invitados));
+        $area->exigirAforo(count($invitados) + 1);
         self::exigirDocumentosUnicos($invitados);
         self::exigirAnticipacion($bloque, $ahora, $parametros);
         if ($activasDeLaUnidad >= $parametros->maxActivasPorUnidad) {

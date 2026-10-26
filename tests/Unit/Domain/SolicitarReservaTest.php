@@ -40,13 +40,14 @@ it('R1 un área inactiva no se reserva', function () {
     Escenario::solicitar(Escenario::salon(activa: false));
 })->throws(ReglaNegocioViolada::class, 'no está disponible');
 
-it('R1 los invitados no superan el aforo del área', function () {
-    $invitados = array_map(fn (int $i) => new Invitado("Invitado {$i}"), range(1, 16));
+it('R1 el aforo cuenta a quien reserva más sus invitados', function () {
+    // Churrasquera: aforo 15 = quien reserva + 14 invitados.
+    $invitados = array_map(fn (int $i) => new Invitado("Invitado {$i}"), range(1, 15));
 
     expect(fn () => Escenario::solicitar(Escenario::churrasquera(), invitados: $invitados))
         ->toThrow(reglaVioladaEs('R1'));
-    expect(Escenario::solicitar(Escenario::churrasquera(), invitados: array_slice($invitados, 0, 15))->cantidadInvitados())
-        ->toBe(15);
+    expect(Escenario::solicitar(Escenario::churrasquera(), invitados: array_slice($invitados, 0, 14))->cantidadInvitados())
+        ->toBe(14);
 });
 
 it('R2 rechaza una reserva que empieza antes de las 08:00', function () {
