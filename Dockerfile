@@ -8,7 +8,7 @@ RUN composer dump-autoload --no-dev --optimize --classmap-authoritative --ignore
 
 FROM dunglas/frankenphp:1-php8.3
 WORKDIR /app
-RUN install-php-extensions pdo_pgsql opcache
+RUN install-php-extensions pdo_pgsql opcache sockets
 COPY --from=vendor /app /app
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh

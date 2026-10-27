@@ -1,5 +1,7 @@
 <?php
 
+use CondoHub\Reservas\Infrastructure\Http\Problema;
+
 // Matriz rol × endpoint. Permitido ⇒ llega a la lógica (ni 401 ni 403); no permitido ⇒ 403; sin token ⇒ 401.
 
 const UUID_X = '11111111-1111-4111-8111-111111111111';
@@ -31,7 +33,12 @@ it('cada rol solo usa lo que le toca', function (string $metodo, string $ruta, a
 })->with('endpoints');
 
 it('los 501 se identifican como NO_IMPLEMENTADO', function () {
-    $this->conRol(['ADMIN'])->getJson('/api/sagas/requieren-revision')->assertStatus(501)->assertJson(['code' => 'NO_IMPLEMENTADO']);
+    // Ya no queda ningún endpoint sin implementar: se comprueba la respuesta que usaría uno nuevo.
+    $respuesta = Problema::noImplementado('Algo nuevo');
+
+    expect($respuesta->getStatusCode())->toBe(501)
+        ->and($respuesta->getData(true))->toMatchArray(['code' => 'NO_IMPLEMENTADO'])
+        ->and($respuesta->headers->get('Content-Type'))->toStartWith('application/problem+json');
 });
 
 it('un id que no es uuid no existe como ruta', function () {

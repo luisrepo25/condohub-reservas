@@ -2,11 +2,11 @@
 
 use CondoHub\Reservas\Infrastructure\Http\Controllers\AreasController;
 use CondoHub\Reservas\Infrastructure\Http\Controllers\ReservasController;
-use CondoHub\Reservas\Infrastructure\Http\Problema;
+use CondoHub\Reservas\Infrastructure\Http\Controllers\SagasController;
 use Illuminate\Support\Facades\Route;
 
 // Todas las rutas exigen un JWT de Keycloak. `jwt` = cualquier rol; `jwt:A,B` = solo esos roles.
-// Los roles de cada ruta son una propuesta derivada de las reglas (aún no existe contracts/openapi/reservas.yaml).
+// Roles por ruta: contracts/openapi/reservas.yaml (confirmados por Erick el 26/10/2026).
 
 Route::get('salud', fn () => response()->json(['servicio' => 'reservas', 'estado' => 'OK']))
     ->middleware('jwt');
@@ -33,5 +33,5 @@ Route::post('reservas/{id}/finalizar', [ReservasController::class, 'finalizar'])
     ->middleware('jwt:ADMIN');
 
 // S3: sagas que requieren revisión del ADMIN.
-Route::get('sagas/requieren-revision', fn () => Problema::noImplementado('El listado de sagas por revisar'))
+Route::get('sagas/requieren-revision', SagasController::class)
     ->middleware('jwt:ADMIN');

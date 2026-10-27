@@ -11,6 +11,7 @@ use CondoHub\Reservas\Application\Errors\UnidadInexistente;
 use CondoHub\Reservas\Domain\Exception\DatoInvalido;
 use CondoHub\Reservas\Domain\Exception\ReglaNegocioViolada;
 use CondoHub\Reservas\Domain\Exception\VersionDesactualizada;
+use CondoHub\Reservas\Infrastructure\Console\PublicarOutboxCommand;
 use CondoHub\Reservas\Infrastructure\Http\Middleware\ProtegerConJwt;
 use CondoHub\Reservas\Infrastructure\Http\Problema;
 use Illuminate\Foundation\Application;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         health: '/up',
     )
+    ->withCommands([PublicarOutboxCommand::class])
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias(['jwt' => ProtegerConJwt::class]);
     })
