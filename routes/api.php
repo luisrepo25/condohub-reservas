@@ -1,6 +1,7 @@
 <?php
 
 use CondoHub\Reservas\Infrastructure\Http\Controllers\AreasController;
+use CondoHub\Reservas\Infrastructure\Http\Controllers\ReservasController;
 use CondoHub\Reservas\Infrastructure\Http\Problema;
 use Illuminate\Support\Facades\Route;
 
@@ -15,7 +16,7 @@ Route::get('areas', AreasController::class)
     ->middleware('jwt');
 
 // R2–R5, R8, O6: solicitar reserva (inicia la saga). No se crean reservas offline.
-Route::post('reservas', fn () => Problema::noImplementado('La solicitud de reservas'))
+Route::post('reservas', [ReservasController::class, 'solicitar'])
     ->middleware('jwt:RESIDENTE,ADMIN');
 
 Route::get('reservas', fn () => Problema::noImplementado('El listado de reservas'))

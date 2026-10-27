@@ -15,18 +15,22 @@ final class PgAreaComunRepository implements AreaComunRepository
 {
     public function __construct(private readonly ConnectionInterface $db) {}
 
+    private const COLUMNAS = "id, codigo, nombre, tipo, aforo, to_char(hora_apertura, 'HH24:MI') AS hora_apertura,
+        to_char(hora_cierre, 'HH24:MI') AS hora_cierre, bloque_minimo_horas, costo_uso::text AS costo_uso,
+        garantia::text AS garantia, activa";
+
     public function activas(): array
     {
-        $filas = $this->db->select(
-            "SELECT id, codigo, nombre, tipo, aforo, to_char(hora_apertura, 'HH24:MI') AS hora_apertura,
-                    to_char(hora_cierre, 'HH24:MI') AS hora_cierre, bloque_minimo_horas, costo_uso::text AS costo_uso,
-                    garantia::text AS garantia, activa
-               FROM area_comun
-              WHERE activa
-              ORDER BY codigo",
-        );
+        $filas = $this->db->select('SELECT '.self::COLUMNAS.' FROM area_comun WHERE activa ORDER BY codigo');
 
         return array_values(array_map(self::aArea(...), $filas));
+    }
+
+    public function porId(string $id): ?AreaComun
+    {
+        $fila = $this->db->selectOne('SELECT '.self::COLUMNAS.' FROM area_comun WHERE id = ?::uuid', [$id]);
+
+        return $fila === null ? null : self::aArea($fila);
     }
 
     private static function aArea(object $fila): AreaComun

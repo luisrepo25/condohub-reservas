@@ -1,10 +1,13 @@
 <?php
 
+use CondoHub\Reservas\Application\Errors\AreaInexistente;
+use CondoHub\Reservas\Application\Errors\ClaveIdempotenciaUsada;
 use CondoHub\Reservas\Application\Errors\FinanzasNoDisponible;
 use CondoHub\Reservas\Application\Errors\ServicioDeIdentidadNoDisponible;
 use CondoHub\Reservas\Application\Errors\SinPermiso;
 use CondoHub\Reservas\Application\Errors\TokenInvalido;
 use CondoHub\Reservas\Application\Errors\UnidadInexistente;
+use CondoHub\Reservas\Domain\Exception\DatoInvalido;
 use CondoHub\Reservas\Domain\Exception\ReglaNegocioViolada;
 use CondoHub\Reservas\Domain\Exception\VersionDesactualizada;
 use CondoHub\Reservas\Infrastructure\Http\Middleware\ProtegerConJwt;
@@ -12,6 +15,7 @@ use CondoHub\Reservas\Infrastructure\Http\Problema;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -38,6 +42,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(fn (FinanzasNoDisponible $e) => Problema::de(
             503, 'Gestión no disponible', 'No se pudo comprobar la morosidad de la unidad (R4); reintenta en unos segundos', null, ['Retry-After' => '5'],
         ));
+        $exceptions->render(fn (AreaInexistente $e) => Problema::de(422, 'Área inexistente', $e->getMessage(), 'R1'));
+        $exceptions->render(fn (ClaveIdempotenciaUsada $e) => Problema::de(409, 'Idempotency-Key ya usada', $e->getMessage(), 'O3'));
+        // Solicitud mal formada (contrato: 400 SolicitudInvalida), sea por la validación HTTP o por un dato del dominio.
+        $exceptions->render(fn (ValidationException $e) => Problema::de(400, 'Solicitud inválida', $e->validator->errors()->first()));
+        $exceptions->render(fn (DatoInvalido $e) => Problema::de(400, 'Solicitud inválida', $e->getMessage()));
         $exceptions->render(fn (NotFoundHttpException $e) => Problema::de(404, 'No encontrado'));
         $exceptions->render(fn (MethodNotAllowedHttpException $e) => Problema::de(405, 'Método no permitido'));
     })->create();

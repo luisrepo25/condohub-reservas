@@ -11,4 +11,7 @@ interface AreaComunRepository
 {
     /** @return list<AreaComun> áreas activas, ordenadas por código */
     public function activas(): array;
+
+    /** El área, activa o no (la regla R1 de área activa la aplica el dominio). */
+    public function porId(string $id): ?AreaComun;
 }

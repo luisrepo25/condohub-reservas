@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CondoHub\Reservas\Domain\Model;
 
+use CondoHub\Reservas\Domain\Exception\DatoInvalido;
 use CondoHub\Reservas\Domain\Exception\ReglaNegocioViolada;
 use CondoHub\Reservas\Domain\Exception\VersionDesactualizada;
 use CondoHub\Reservas\Domain\ValueObject\AlcanceAnulacion;
@@ -218,7 +219,7 @@ final class Reserva
     {
         $documentos = array_filter(array_map(static fn (Invitado $i): ?string => $i->documento, $invitados));
         if (count($documentos) !== count(array_unique($documentos))) {
-            throw new \InvalidArgumentException('Hay invitados con el mismo documento');
+            throw new DatoInvalido('Hay invitados con el mismo documento');
         }
     }
 
