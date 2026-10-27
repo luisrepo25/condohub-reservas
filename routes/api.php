@@ -19,16 +19,16 @@ Route::get('areas', AreasController::class)
 Route::post('reservas', [ReservasController::class, 'solicitar'])
     ->middleware('jwt:RESIDENTE,ADMIN');
 
-Route::get('reservas', fn () => Problema::noImplementado('El listado de reservas'))
+Route::get('reservas', [ReservasController::class, 'listar'])
     ->middleware('jwt:RESIDENTE,ADMIN');
 
 // R7: cancelación por el residente.
-Route::post('reservas/{id}/cancelar', fn () => Problema::noImplementado('La cancelación de reservas'))
+Route::post('reservas/{id}/cancelar', [ReservasController::class, 'cancelar'])
     ->whereUuid('id')
     ->middleware('jwt:RESIDENTE,ADMIN');
 
 // R6: el ADMIN marca la reserva como FINALIZADA y se devuelve la garantía.
-Route::post('reservas/{id}/finalizar', fn () => Problema::noImplementado('La finalización de reservas'))
+Route::post('reservas/{id}/finalizar', [ReservasController::class, 'finalizar'])
     ->whereUuid('id')
     ->middleware('jwt:ADMIN');
 

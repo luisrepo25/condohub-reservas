@@ -6,6 +6,7 @@ namespace CondoHub\Reservas\Infrastructure\Persistence;
 
 use CondoHub\Reservas\Domain\Exception\ReglaNegocioViolada;
 use CondoHub\Reservas\Domain\Exception\ReservaYaRegistrada;
+use CondoHub\Reservas\Domain\Exception\VersionDesactualizada;
 use CondoHub\Reservas\Domain\Model\Reserva;
 use CondoHub\Reservas\Domain\Port\ReservaRepository;
 use CondoHub\Reservas\Domain\ValueObject\BloqueHorario;
@@ -33,11 +34,61 @@ final class PgReservaRepository implements ReservaRepository
 
     public function __construct(private readonly ConnectionInterface $db) {}
 
+    public function porId(string $id): ?Reserva
+    {
+        return $this->una('id = ?::uuid', $id);
+    }
+
     public function porIdempotencyKey(IdempotencyKey $clave): ?Reserva
     {
-        $fila = $this->db->selectOne('SELECT '.self::COLUMNAS.' FROM reserva WHERE idempotency_key = ?::uuid', [$clave->valor]);
+        return $this->una('idempotency_key = ?::uuid', $clave->valor);
+    }
 
-        return $fila === null ? null : $this->aReserva($fila);
+    public function porClaveCancelacion(IdempotencyKey $clave): ?Reserva
+    {
+        return $this->una('cancelacion_idempotency_key = ?::uuid', $clave->valor);
+    }
+
+    public function listar(?array $unidades, ?EstadoReserva $estado): array
+    {
+        if ($unidades === []) {
+            return [];
+        }
+        $condiciones = ['true'];
+        $valores = [];
+        if ($unidades !== null) {
+            $condiciones[] = 'unidad_id = ANY(?::uuid[])';
+            $valores[] = self::arregloUuid($unidades);
+        }
+        if ($estado !== null) {
+            $condiciones[] = 'estado = ?::estado_reserva';
+            $valores[] = $estado->value;
+        }
+        $filas = $this->db->select(
+            'SELECT '.self::COLUMNAS.' FROM reserva WHERE '.implode(' AND ', $condiciones).' ORDER BY inicio, id',
+            $valores,
+        );
+        /** @var list<object{id: string}> $filas */
+        $invitados = $this->invitadosDe(array_map(static fn (object $f): string => $f->id, $filas));
+
+        return array_map(fn (object $f): Reserva => $this->aReserva($f, $invitados[$f->id] ?? []), $filas);
+    }
+
+    public function actualizar(Reserva $reserva, int $versionLeida, ?IdempotencyKey $claveCancelacion = null): void
+    {
+        $filas = $this->db->update(
+            'UPDATE reserva SET estado = ?::estado_reserva, con_danios = ?, motivo = ?, version = ?,
+                    cancelacion_idempotency_key = COALESCE(?::uuid, cancelacion_idempotency_key)
+              WHERE id = ?::uuid AND version = ?',
+            [
+                $reserva->estado()->value, $reserva->conDanios(), $reserva->motivo(), $reserva->version(),
+                $claveCancelacion?->valor, $reserva->id, $versionLeida,
+            ],
+        );
+        if ($filas === 0) {
+            $actual = (int) $this->db->scalar('SELECT version FROM reserva WHERE id = ?::uuid', [$reserva->id]);
+            throw new VersionDesactualizada($actual, $versionLeida);
+        }
     }
 
     public function contarActivasBloqueandoUnidad(string $unidadId): int
@@ -109,21 +160,57 @@ final class PgReservaRepository implements ReservaRepository
         return $e;
     }
 
-    private function aReserva(object $fila): Reserva
+    private function una(string $condicion, string $valor): ?Reserva
+    {
+        $fila = $this->db->selectOne('SELECT '.self::COLUMNAS.' FROM reserva WHERE '.$condicion, [$valor]);
+        if ($fila === null) {
+            return null;
+        }
+
+        return $this->aReserva($fila, $this->invitadosDe([(string) $fila->id])[$fila->id] ?? []);
+    }
+
+    /**
+     * Invitados de varias reservas en una sola consulta (sin N+1 al listar).
+     *
+     * @param  list<string>  $reservas
+     * @return array<string, list<Invitado>>
+     */
+    private function invitadosDe(array $reservas): array
+    {
+        if ($reservas === []) {
+            return [];
+        }
+        $porReserva = [];
+        $filas = $this->db->select(
+            'SELECT reserva_id, nombre, documento FROM invitado_reserva WHERE reserva_id = ANY(?::uuid[]) ORDER BY nombre, id',
+            [self::arregloUuid($reservas)],
+        );
+        foreach ($filas as $fila) {
+            /** @var object{reserva_id: string, nombre: string, documento: ?string} $fila */
+            $porReserva[$fila->reserva_id][] = self::invitado($fila);
+        }
+
+        return $porReserva;
+    }
+
+    /** @param list<string> $uuids  literal de arreglo de PostgreSQL; los uuid ya vienen validados */
+    private static function arregloUuid(array $uuids): string
+    {
+        return '{'.implode(',', $uuids).'}';
+    }
+
+    /** @param list<Invitado> $invitados */
+    private function aReserva(object $fila, array $invitados): Reserva
     {
         /** @var object{id: string, area_id: string, unidad_id: string, solicitada_por: string, inicio: int, fin: int, estado: string, costo_uso: string, garantia: string, con_danios: ?bool, motivo: ?string, idempotency_key: string, version: int} $fila */
-        $invitados = $this->db->select(
-            'SELECT nombre, documento FROM invitado_reserva WHERE reserva_id = ?::uuid ORDER BY nombre, id',
-            [$fila->id],
-        );
-
         return Reserva::reconstituir(
             $fila->id,
             $fila->area_id,
             $fila->unidad_id,
             $fila->solicitada_por,
             self::bloque($fila),
-            array_values(array_map(static fn (object $i): Invitado => self::invitado($i), $invitados)),
+            $invitados,
             Dinero::de($fila->costo_uso),
             Dinero::de($fila->garantia),
             IdempotencyKey::de($fila->idempotency_key),

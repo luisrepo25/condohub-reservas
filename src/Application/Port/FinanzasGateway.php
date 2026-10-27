@@ -9,8 +9,8 @@ use CondoHub\Reservas\Application\Errors\UnidadInexistente;
 use CondoHub\Reservas\Domain\Exception\ReglaNegocioViolada;
 
 /**
- * Lo que Reservas necesita del contexto Finanzas (Gestión), dueño de la morosidad. Es una consulta de solo lectura hecha
- * con la identidad de quien pide la reserva, así Gestión aplica F1 (un residente solo ve su unidad).
+ * Lo que Reservas necesita del contexto Finanzas (Gestión), dueño de las unidades y la morosidad. Son consultas de
+ * solo lectura hechas con la identidad de quien hace la petición, así Gestión aplica F1 con sus propias reglas.
  */
 interface FinanzasGateway
 {
@@ -22,4 +22,13 @@ interface FinanzasGateway
      * @throws FinanzasNoDisponible Gestión no respondió o respondió algo inesperado
      */
     public function expensasVencidas(string $unidadId): int;
+
+    /**
+     * F1: unidades de las que el solicitante es titular o residente (`miPerfil`). Vacío si su cuenta no está enlazada.
+     *
+     * @return list<string>
+     *
+     * @throws FinanzasNoDisponible Gestión no respondió o respondió algo inesperado
+     */
+    public function unidadesDelSolicitante(): array;
 }

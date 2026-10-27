@@ -40,7 +40,7 @@ it('F1 consulta con el token de quien reserva y la unidad como variable', functi
     Http::assertSent(fn (Request $r) => $r->url() === URL_GESTION
         && $r->hasHeader('Authorization', 'Bearer token-del-residente')
         && str_contains($r['query'], 'estadoDeCuenta(unidadId: $unidadId) { expensasVencidas }')
-        && $r['variables'] === ['unidadId' => UNIDAD_X]);
+        && json_decode($r->body(), true)['variables'] === ['unidadId' => UNIDAD_X]);
 });
 
 it('F1 una unidad ajena se rechaza con el código F1', function (string $codigoGestion) {
@@ -99,3 +99,26 @@ it('sin token del solicitante no consulta a Gestión', function () {
     expect(fn () => gestion(null)->expensasVencidas(UNIDAD_X))->toThrow(FinanzasNoDisponible::class);
     Http::assertNothingSent();
 });
+
+it('F1 las unidades del solicitante salen de miPerfil, con su token', function () {
+    respuestaGestion(['data' => ['miPerfil' => ['unidades' => [['unidadId' => 'AAAAAAAA-0000-4000-8000-000000000001'], ['unidadId' => UNIDAD_X]]]]]);
+
+    expect(gestion()->unidadesDelSolicitante())->toBe(['aaaaaaaa-0000-4000-8000-000000000001', UNIDAD_X]);
+    Http::assertSent(fn (Request $r) => $r->hasHeader('Authorization', 'Bearer token-del-residente')
+        && str_contains($r['query'], 'miPerfil { unidades { unidadId } }'));
+});
+
+it('F1 una cuenta sin unidades enlazadas no tiene unidades', function () {
+    respuestaGestion(['data' => ['miPerfil' => ['unidades' => []]]]);
+
+    expect(gestion()->unidadesDelSolicitante())->toBe([]);
+});
+
+it('miPerfil fuera de contrato es FinanzasNoDisponible', function (array $cuerpo) {
+    respuestaGestion($cuerpo);
+
+    gestion()->unidadesDelSolicitante();
+})->with([
+    'sin unidades' => [['data' => ['miPerfil' => []]]],
+    'unidad sin id' => [['data' => ['miPerfil' => ['unidades' => [['codigo' => 'A-101']]]]]],
+])->throws(FinanzasNoDisponible::class);

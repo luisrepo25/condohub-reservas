@@ -11,6 +11,7 @@ use CondoHub\Reservas\Domain\Model\AreaComun;
 use CondoHub\Reservas\Domain\Model\Reserva;
 use CondoHub\Reservas\Domain\Port\ReservaRepository;
 use CondoHub\Reservas\Domain\ValueObject\BloqueHorario;
+use CondoHub\Reservas\Domain\ValueObject\EstadoReserva;
 use CondoHub\Reservas\Domain\ValueObject\IdempotencyKey;
 use CondoHub\Reservas\Infrastructure\Persistence\PgReservaRepository;
 use Illuminate\Support\Facades\DB;
@@ -122,6 +123,26 @@ it('O3 un reintento simultáneo con la misma clave responde la reserva del prime
         public function guardarNueva(Reserva $reserva): void
         {
             $this->real->guardarNueva($reserva);
+        }
+
+        public function porId(string $id): ?Reserva
+        {
+            return $this->real->porId($id);
+        }
+
+        public function porClaveCancelacion(IdempotencyKey $clave): ?Reserva
+        {
+            return $this->real->porClaveCancelacion($clave);
+        }
+
+        public function listar(?array $unidades, ?EstadoReserva $estado): array
+        {
+            return $this->real->listar($unidades, $estado);
+        }
+
+        public function actualizar(Reserva $reserva, int $versionLeida, ?IdempotencyKey $claveCancelacion = null): void
+        {
+            $this->real->actualizar($reserva, $versionLeida, $claveCancelacion);
         }
     });
 

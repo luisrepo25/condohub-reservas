@@ -38,7 +38,16 @@ beforeEach(function () {
     if (env('RESERVAS_INTEGRACION') !== '1') {
         $this->markTestSkipped('Integración con Gestión: activar con RESERVAS_INTEGRACION=1 y el compose levantado');
     }
+    // phpunit.xml apunta a una Gestión inexistente para que ninguna otra prueba salga a la red: aquí va la real.
+    config(['gestion.graphql_url' => env('GESTION_URL_INTEGRACION', 'http://localhost:8090/gestion/graphql'), 'gestion.reintentos' => 1]);
 });
+
+it('F1 Gestión dice qué unidades son del residente', function () {
+    $token = tokenReal('residente@condohub.test');
+    $esperadas = array_column(consultarGestion($token, '{ miPerfil { unidades { unidadId } } }')['miPerfil']['unidades'], 'unidadId');
+
+    expect(finanzasCon($token)->unidadesDelSolicitante())->toBe($esperadas)->not->toBeEmpty();
+})->group('integracion');
 
 it('R4 el residente consulta la morosidad de su propia unidad', function () {
     $token = tokenReal('residente@condohub.test');

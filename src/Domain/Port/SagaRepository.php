@@ -10,4 +10,7 @@ use CondoHub\Reservas\Domain\Model\SagaReserva;
 interface SagaRepository
 {
     public function guardarNueva(SagaReserva $saga): void;
+
+    /** sagaId de la reserva, para correlacionar los mensajes posteriores (cancelación, finalización). */
+    public function idDeLaReserva(string $reservaId): ?string;
 }

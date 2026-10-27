@@ -13,6 +13,13 @@ final class PgSagaRepository implements SagaRepository
 {
     public function __construct(private readonly ConnectionInterface $db) {}
 
+    public function idDeLaReserva(string $reservaId): ?string
+    {
+        $id = $this->db->scalar('SELECT id FROM saga_instancia WHERE reserva_id = ?::uuid', [$reservaId]);
+
+        return is_string($id) ? $id : null;
+    }
+
     public function guardarNueva(SagaReserva $saga): void
     {
         $this->db->insert(

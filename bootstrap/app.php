@@ -3,6 +3,7 @@
 use CondoHub\Reservas\Application\Errors\AreaInexistente;
 use CondoHub\Reservas\Application\Errors\ClaveIdempotenciaUsada;
 use CondoHub\Reservas\Application\Errors\FinanzasNoDisponible;
+use CondoHub\Reservas\Application\Errors\ReservaNoEncontrada;
 use CondoHub\Reservas\Application\Errors\ServicioDeIdentidadNoDisponible;
 use CondoHub\Reservas\Application\Errors\SinPermiso;
 use CondoHub\Reservas\Application\Errors\TokenInvalido;
@@ -40,8 +41,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(fn (VersionDesactualizada $e) => Problema::de(409, 'Versión desactualizada', $e->getMessage(), 'O5'));
         $exceptions->render(fn (UnidadInexistente $e) => Problema::de(422, 'Unidad inexistente', $e->getMessage()));
         $exceptions->render(fn (FinanzasNoDisponible $e) => Problema::de(
-            503, 'Gestión no disponible', 'No se pudo comprobar la morosidad de la unidad (R4); reintenta en unos segundos', null, ['Retry-After' => '5'],
+            503, 'Gestión no disponible', 'No se pudo consultar a Gestión (unidades o morosidad); reintenta en unos segundos', null, ['Retry-After' => '5'],
         ));
+        $exceptions->render(fn (ReservaNoEncontrada $e) => Problema::de(404, 'No encontrado', $e->getMessage()));
         $exceptions->render(fn (AreaInexistente $e) => Problema::de(422, 'Área inexistente', $e->getMessage(), 'R1'));
         $exceptions->render(fn (ClaveIdempotenciaUsada $e) => Problema::de(409, 'Idempotency-Key ya usada', $e->getMessage(), 'O3'));
         // Solicitud mal formada (contrato: 400 SolicitudInvalida), sea por la validación HTTP o por un dato del dominio.

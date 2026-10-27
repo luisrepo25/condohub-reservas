@@ -11,11 +11,9 @@ use CondoHub\Reservas\Domain\Model\Reserva;
  * Comando del paso 2 de la saga: Reservas pide a Gestión aplicar los cargos de la reserva (R5).
  * Contrato: contracts/events/reservas.AplicarCargosReserva.schema.json. Gestión no crea cargos de monto 0.
  */
-final readonly class AplicarCargosReserva
+final readonly class AplicarCargosReserva implements ComandoSaga
 {
     public const TIPO = 'reservas.AplicarCargosReserva';
-
-    public const VERSION = 1;
 
     /** @param array{reservaId: string, unidadId: string, areaComun: string, costoUso: string, garantia: string} $data */
     private function __construct(
@@ -34,5 +32,35 @@ final readonly class AplicarCargosReserva
             'costoUso' => (string) $reserva->costoUso,
             'garantia' => (string) $reserva->garantia,
         ]);
+    }
+
+    public function tipo(): string
+    {
+        return self::TIPO;
+    }
+
+    public function eventId(): string
+    {
+        return $this->eventId;
+    }
+
+    public function sagaId(): string
+    {
+        return $this->sagaId;
+    }
+
+    public function reservaId(): string
+    {
+        return $this->data['reservaId'];
+    }
+
+    public function ocurrido(): \DateTimeImmutable
+    {
+        return $this->ocurrido;
+    }
+
+    public function data(): array
+    {
+        return $this->data;
     }
 }

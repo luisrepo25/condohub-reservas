@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace CondoHub\Reservas\Infrastructure\Messaging;
 
 use CondoHub\Reservas\Application\Port\Outbox;
-use CondoHub\Reservas\Domain\Event\AplicarCargosReserva;
+use CondoHub\Reservas\Domain\Event\ComandoSaga;
 use Illuminate\Database\ConnectionInterface;
 
 /**
@@ -16,20 +16,20 @@ final class PgOutbox implements Outbox
 {
     public function __construct(private readonly ConnectionInterface $db) {}
 
-    public function guardar(AplicarCargosReserva $comando): void
+    public function guardar(ComandoSaga $comando): void
     {
         $this->db->insert(
             'INSERT INTO outbox (id, aggregate_type, aggregate_id, event_type, routing_key, saga_id, payload, occurred_at)
              VALUES (?::uuid, ?, ?, ?, ?, ?::uuid, ?::jsonb, to_timestamp(?))',
             [
-                $comando->eventId,
+                $comando->eventId(),
                 'Reserva',
-                $comando->data['reservaId'],
-                'AplicarCargosReserva',
-                AplicarCargosReserva::TIPO,
-                $comando->sagaId,
-                json_encode($comando->data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
-                $comando->ocurrido->getTimestamp(),
+                $comando->reservaId(),
+                substr($comando->tipo(), (int) strpos($comando->tipo(), '.') + 1),
+                $comando->tipo(),
+                $comando->sagaId(),
+                json_encode($comando->data(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                $comando->ocurrido()->getTimestamp(),
             ],
         );
     }
