@@ -45,7 +45,7 @@ final class Escenario
 
     public static function parametros(): ParametrosReserva
     {
-        return new ParametrosReserva(48, 60, 2, 48, self::zona());
+        return new ParametrosReserva(48, 60, 2, 48, 2, self::zona());
     }
 
     public static function salon(bool $activa = true): AreaComun
