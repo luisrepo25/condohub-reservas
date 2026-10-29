@@ -62,9 +62,11 @@ final class SolicitarReserva
         $bloque = new BloqueHorario($solicitud->inicio, $solicitud->fin);
         $parametros = $this->parametros->reserva();
         $this->politicaMorosidad->exigirPuedeReservar($this->finanzas->expensasVencidas($solicitud->unidadId), $parametros);
+        // Paso 3 de la saga: Acceso identifica la unidad por su código; se pide ahora, con el token de quien reserva.
+        $unidadCodigo = $this->finanzas->codigoDeUnidad($solicitud->unidadId);
 
         try {
-            $reserva = $this->transaccion->ejecutar(fn (): Reserva => $this->registrar($solicitante, $solicitud, $clave, $area, $bloque, $parametros));
+            $reserva = $this->transaccion->ejecutar(fn (): Reserva => $this->registrar($solicitante, $solicitud, $clave, $area, $bloque, $parametros, $unidadCodigo));
         } catch (ReservaYaRegistrada) {
             $ganadora = $this->reservas->porIdempotencyKey($clave)
                 ?? throw new \LogicException('O3: la reserva con la clave repetida no aparece');
@@ -82,6 +84,7 @@ final class SolicitarReserva
         AreaComun $area,
         BloqueHorario $bloque,
         ParametrosReserva $parametros,
+        string $unidadCodigo,
     ): Reserva {
         $ahora = $this->reloj->ahora();
         $activas = $this->reservas->contarActivasBloqueandoUnidad($solicitud->unidadId);
@@ -107,6 +110,7 @@ final class SolicitarReserva
         $comando = AplicarCargosReserva::de(Uuid::v4(), Uuid::v4(), $reserva, $area, $ahora);
         $this->sagas->guardarNueva(SagaReserva::iniciar(
             $comando->sagaId, $reserva->id, $comando->eventId, $ahora, $this->parametros->esperaPasoSagaSegundos(),
+            ['unidadCodigo' => $unidadCodigo],
         ));
         $this->outbox->guardar($comando);
 

@@ -22,6 +22,6 @@ interface ComandoSaga
 
     public function ocurrido(): \DateTimeImmutable;
 
-    /** @return array<string, string> */
+    /** @return array<string, mixed> */
     public function data(): array;
 }

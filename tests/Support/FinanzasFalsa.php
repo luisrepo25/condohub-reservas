@@ -25,6 +25,18 @@ final class FinanzasFalsa implements FinanzasGateway
         return $this->vencidas;
     }
 
+    /** Código de cualquier unidad consultada; no cuenta en `consultadas` (esas son las de R4). */
+    public string $codigo = 'A-101';
+
+    public function codigoDeUnidad(string $unidadId): string
+    {
+        if ($this->error !== null) {
+            throw $this->error;
+        }
+
+        return $this->codigo;
+    }
+
     public function unidadesDelSolicitante(): array
     {
         if ($this->error !== null) {

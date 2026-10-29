@@ -25,6 +25,9 @@ final class FinanzasGatewayGraphQL implements FinanzasGateway
     private const EXPENSAS_VENCIDAS = 'query ExpensasVencidasParaReservar($unidadId: ID!) '
         .'{ estadoDeCuenta(unidadId: $unidadId) { expensasVencidas } }';
 
+    private const CODIGO_DE_UNIDAD = 'query CodigoDeUnidadParaPases($unidadId: ID!) '
+        .'{ estadoDeCuenta(unidadId: $unidadId) { codigo } }';
+
     private const MIS_UNIDADES = 'query UnidadesDelSolicitante { miPerfil { unidades { unidadId } } }';
 
     /** @param Closure(): ?string $tokenDelSolicitante */
@@ -64,6 +67,17 @@ final class FinanzasGatewayGraphQL implements FinanzasGateway
         }
 
         return $ids;
+    }
+
+    public function codigoDeUnidad(string $unidadId): string
+    {
+        $codigo = $this->consultar(self::CODIGO_DE_UNIDAD, ['unidadId' => $unidadId], ['unidadId' => $unidadId])
+            ->json('data.estadoDeCuenta.codigo');
+        if (! is_string($codigo) || trim($codigo) === '') {
+            throw $this->fueraDeContrato('estadoDeCuenta.codigo', ['unidadId' => $unidadId]);
+        }
+
+        return $codigo;
     }
 
     /**

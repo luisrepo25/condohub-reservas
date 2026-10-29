@@ -31,4 +31,13 @@ interface FinanzasGateway
      * @throws FinanzasNoDisponible Gestión no respondió o respondió algo inesperado
      */
     public function unidadesDelSolicitante(): array;
+
+    /**
+     * Código de la unidad (ej. A-101): Acceso la identifica así al emitir los pases del paso 3 de la saga.
+     *
+     * @throws ReglaNegocioViolada F1: la unidad no es del solicitante
+     * @throws UnidadInexistente la unidad no existe en Finanzas
+     * @throws FinanzasNoDisponible Gestión no respondió o respondió algo inesperado
+     */
+    public function codigoDeUnidad(string $unidadId): string;
 }

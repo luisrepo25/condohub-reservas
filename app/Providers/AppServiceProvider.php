@@ -3,23 +3,29 @@
 namespace App\Providers;
 
 use CondoHub\Reservas\Application\Port\ConsultaSagas;
+use CondoHub\Reservas\Application\Port\EventosProcesados;
 use CondoHub\Reservas\Application\Port\FinanzasGateway;
+use CondoHub\Reservas\Application\Port\InvitadosParaPases;
 use CondoHub\Reservas\Application\Port\Outbox;
 use CondoHub\Reservas\Application\Port\OutboxPendiente;
 use CondoHub\Reservas\Application\Port\PublicadorEventos;
 use CondoHub\Reservas\Application\Port\Reloj;
 use CondoHub\Reservas\Application\Port\Transaccion;
 use CondoHub\Reservas\Application\Port\VerificadorToken;
+use CondoHub\Reservas\Application\Saga\ProcesarRespuestaSaga;
 use CondoHub\Reservas\Domain\Port\AreaComunRepository;
 use CondoHub\Reservas\Domain\Port\ParametroRepository;
 use CondoHub\Reservas\Domain\Port\ReservaRepository;
 use CondoHub\Reservas\Domain\Port\SagaRepository;
 use CondoHub\Reservas\Infrastructure\Gateway\FinanzasGatewayGraphQL;
+use CondoHub\Reservas\Infrastructure\Messaging\ConsumidorRespuestasSaga;
 use CondoHub\Reservas\Infrastructure\Messaging\PgOutbox;
 use CondoHub\Reservas\Infrastructure\Messaging\PgOutboxPendiente;
 use CondoHub\Reservas\Infrastructure\Messaging\PublicadorRabbitMq;
 use CondoHub\Reservas\Infrastructure\Persistence\PgAreaComunRepository;
 use CondoHub\Reservas\Infrastructure\Persistence\PgConsultaSagas;
+use CondoHub\Reservas\Infrastructure\Persistence\PgEventosProcesados;
+use CondoHub\Reservas\Infrastructure\Persistence\PgInvitadosParaPases;
 use CondoHub\Reservas\Infrastructure\Persistence\PgParametroRepository;
 use CondoHub\Reservas\Infrastructure\Persistence\PgReservaRepository;
 use CondoHub\Reservas\Infrastructure\Persistence\PgSagaRepository;
@@ -78,6 +84,21 @@ class AppServiceProvider extends ServiceProvider
             (string) config('rabbitmq.vhost'),
             (string) config('rabbitmq.exchange'),
             (float) config('rabbitmq.espera_segundos'),
+            $app->make(LoggerInterface::class),
+        ));
+
+        // Orquestador de la saga (saga:consumir): respuestas de Gestión y Acceso, procesadas una sola vez (S5).
+        $this->app->bind(EventosProcesados::class, PgEventosProcesados::class);
+        $this->app->bind(InvitadosParaPases::class, PgInvitadosParaPases::class);
+        $this->app->singleton(ConsumidorRespuestasSaga::class, fn ($app): ConsumidorRespuestasSaga => new ConsumidorRespuestasSaga(
+            (string) config('rabbitmq.host'),
+            (int) config('rabbitmq.puerto'),
+            (string) config('rabbitmq.usuario'),
+            (string) config('rabbitmq.clave'),
+            (string) config('rabbitmq.vhost'),
+            (string) config('rabbitmq.saga_cola'),
+            (float) config('rabbitmq.espera_segundos'),
+            $app->make(ProcesarRespuestaSaga::class),
             $app->make(LoggerInterface::class),
         ));
     }

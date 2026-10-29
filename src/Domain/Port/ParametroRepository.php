@@ -13,4 +13,7 @@ interface ParametroRepository
 
     /** S2: segundos que se espera la respuesta de cada paso de la saga (`saga.timeout_paso_segundos`). */
     public function esperaPasoSagaSegundos(): int;
+
+    /** S3: intentos de una compensación antes de dejar la saga en REQUIERE_REVISION (`saga.reintentos_por_paso`). */
+    public function reintentosPorPasoSaga(): int;
 }

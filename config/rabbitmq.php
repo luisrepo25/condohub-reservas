@@ -15,4 +15,7 @@ return [
     // Publicador del outbox: cada cuántos segundos revisa y cuántos mensajes toma por vuelta.
     'outbox_intervalo_segundos' => (int) env('OUTBOX_INTERVALO_SEGUNDOS', 2),
     'outbox_lote' => (int) env('OUTBOX_LOTE', 50),
+    // Orquestador de la saga (saga:consumir): cola de las respuestas y cada cuántos segundos revisa las esperas vencidas.
+    'saga_cola' => env('RABBITMQ_COLA_SAGA', 'reservas.saga'),
+    'saga_revision_segundos' => (int) env('SAGA_REVISION_SEGUNDOS', 5),
 ];

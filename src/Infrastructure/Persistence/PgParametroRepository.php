@@ -35,6 +35,11 @@ final class PgParametroRepository implements ParametroRepository
         return self::entero($this->leer(), 'saga.timeout_paso_segundos');
     }
 
+    public function reintentosPorPasoSaga(): int
+    {
+        return max(1, self::entero($this->leer(), 'saga.reintentos_por_paso'));
+    }
+
     /** @return array<string, string> */
     private function leer(): array
     {
