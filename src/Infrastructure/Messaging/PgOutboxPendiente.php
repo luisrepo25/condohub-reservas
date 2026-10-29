@@ -22,7 +22,7 @@ final class PgOutboxPendiente implements OutboxPendiente
             'SELECT id, routing_key, saga_id, extract(epoch FROM occurred_at)::bigint AS ocurrido, payload::text AS payload
                FROM outbox
               WHERE published_at IS NULL
-              ORDER BY occurred_at, id
+              ORDER BY occurred_at, secuencia
               LIMIT ?
                 FOR UPDATE SKIP LOCKED',
             [$limite],
