@@ -12,6 +12,7 @@ use CondoHub\Reservas\Application\Port\Reloj;
 use CondoHub\Reservas\Application\Port\Transaccion;
 use CondoHub\Reservas\Application\Support\Uuid;
 use CondoHub\Reservas\Domain\Event\AnularCargosReserva;
+use CondoHub\Reservas\Domain\Event\RevocarPasesReserva;
 use CondoHub\Reservas\Domain\Exception\VersionDesactualizada;
 use CondoHub\Reservas\Domain\Model\Reserva;
 use CondoHub\Reservas\Domain\Port\ParametroRepository;
@@ -22,8 +23,8 @@ use CondoHub\Reservas\Domain\ValueObject\IdempotencyKey;
 
 /**
  * R7: el residente (o el ADMIN) cancela una reserva CONFIRMADA. Con 48 h o más de anticipación se anulan todos los
- * cargos; si no, se cobra el uso y se devuelve la garantía. La reserva y el pedido a Gestión (AnularCargosReserva) se
- * guardan en una transacción (S4). Repetir la misma Idempotency-Key devuelve la misma reserva cancelada (O3).
+ * cargos; si no, se cobra el uso y se devuelve la garantía. Los pases de los invitados se revocan siempre. La reserva,
+ * el pedido a Gestión (AnularCargosReserva) y el de Acceso (RevocarPasesReserva) se guardan en una transacción (S4). Repetir la misma Idempotency-Key devuelve la misma reserva cancelada (O3).
  */
 final class CancelarReserva
 {
@@ -56,6 +57,10 @@ final class CancelarReserva
                 $this->reservas->actualizar($reserva, $version, $clave);
                 $sagaId = $this->sagas->idDeLaReserva($reserva->id);
                 $this->outbox->guardar(AnularCargosReserva::de(Uuid::v4(), $sagaId, $reserva, $alcance, $ahora));
+                if ($reserva->cantidadInvitados() > 0) {
+                    // R7: los invitados de una reserva cancelada ya no entran; Acceso revoca sus pases (A2).
+                    $this->outbox->guardar(RevocarPasesReserva::de(Uuid::v4(), $sagaId, $reserva->id, $ahora));
+                }
             });
         } catch (VersionDesactualizada $e) {
             // Un reintento simultáneo con la misma clave pudo cancelarla primero: entonces es la misma respuesta (O3).

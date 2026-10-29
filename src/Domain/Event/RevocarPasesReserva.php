@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace CondoHub\Reservas\Domain\Event;
 
 /**
- * Compensación del paso 3 de la saga: Acceso revoca los pases de la reserva (idempotente).
+ * Compensación del paso 3 de la saga, y cancelación de una reserva confirmada (R7): Acceso revoca los pases de la
+ * reserva (idempotente).
  * Contrato: contracts/events/reservas.RevocarPasesReserva.schema.json.
  */
 final readonly class RevocarPasesReserva implements ComandoSaga
@@ -15,12 +16,12 @@ final readonly class RevocarPasesReserva implements ComandoSaga
     /** @param array{reservaId: string} $data */
     private function __construct(
         public string $eventId,
-        public string $sagaId,
+        public ?string $sagaId,
         public \DateTimeImmutable $ocurrido,
         public array $data,
     ) {}
 
-    public static function de(string $eventId, string $sagaId, string $reservaId, \DateTimeImmutable $ahora): self
+    public static function de(string $eventId, ?string $sagaId, string $reservaId, \DateTimeImmutable $ahora): self
     {
         return new self($eventId, $sagaId, $ahora, ['reservaId' => $reservaId]);
     }
@@ -35,7 +36,7 @@ final readonly class RevocarPasesReserva implements ComandoSaga
         return $this->eventId;
     }
 
-    public function sagaId(): string
+    public function sagaId(): ?string
     {
         return $this->sagaId;
     }
