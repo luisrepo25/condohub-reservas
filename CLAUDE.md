@@ -59,7 +59,7 @@ Regla: `src/Domain` y `src/Application` no pueden usar `Illuminate\*` (lo verifi
 | 4 | Notificaciones | `reservas.ReservaConfirmada` (n8n la toma) | — |
 
 - Estado en tabla `saga_instancia` (paso actual, estado, intentos, timestamps). Al arrancar, retoma sagas no terminadas.
-- Cada paso: 3 reintentos con espera exponencial y timeout; luego compensar en orden inverso.
+- Cada paso: espera su respuesta hasta el timeout (`saga.timeout_paso_segundos`); el comando sigue en una cola durable por si el servicio vuelve a tiempo, y un fallo técnico al consumirlo se reintenta 3 veces antes de la DLQ. Vencido el plazo, compensar en orden inverso (S2). Las compensaciones se reintentan con espera exponencial (S3).
 - Compensaciones: reintento indefinido con backoff; si no se logran, `REQUIERE_REVISION` (visible en la consola admin).
 - Cambio de estado + mensaje en la misma transacción (tabla `outbox`). Consumidores idempotentes (tabla `evento_procesado`).
 - Toda la saga lleva `sagaId` en los eventos y en los logs.
@@ -84,9 +84,9 @@ php artisan outbox:publicar        # publicador del outbox (también programado)
 - Base de datos en SQL nativo (`database/sql/`), ejecutado por una migración Laravel: el Schema Builder no soporta `EXCLUDE` (R2) ni triggers (R8). Cambios = archivo nuevo `00N_...sql` + migración nueva. Pruebas en `tests/db/pruebas_reglas_bd.sql`.
 - Controllers sin lógica: validan forma (FormRequest), llaman un UseCase y mapean el resultado.
 
-## Estado y seguridad (esqueleto, 14/10/2026)
+## Estado y seguridad (actualizado 31/10/2026)
 
-Los endpoints existen y ya están protegidos por rol; su lógica no: responden `501` (`NO_IMPLEMENTADO`), a quitar al implementar cada uno. Laravel 12 (ADR 0001).
+**Todos los endpoints están implementados** (ninguno responde `501`) y protegidos por rol: solicitar, listar, cancelar y finalizar reservas, áreas y sagas por revisar, con el orquestador de la saga, el Outbox y los consumidores idempotentes. Probado de punta a punta en las tres nubes y, con un fallo real, en local (`node infra/probar-caos-saga.mjs`: con Acceso caído la reserva queda `FALLIDA`, la saga `COMPENSADA` y los cargos `ANULADOS`). Laravel 12 (ADR 0001). La regla S2 (ajustada el 31/10/2026) describe este comportamiento: espera con plazo y compensación al vencerse; `node infra/probar-caos-saga.mjs --recuperar` muestra el caso en que Acceso vuelve a tiempo y la reserva termina `CONFIRMADA`.
 
 - Roles (propuesta derivada de las reglas y escrita en `contracts/openapi/reservas.yaml`, a confirmar con Erick): `GET /api/salud` y `GET /api/areas` cualquiera · `POST/GET /api/reservas` y `POST /api/reservas/{id}/cancelar`: RESIDENTE, ADMIN · `POST /api/reservas/{id}/finalizar` y `GET /api/sagas/requieren-revision`: ADMIN.
 - Rutas con middleware `jwt` / `jwt:RESIDENTE,ADMIN` en `routes/api.php`; JWT en `src/Infrastructure/Security/KeycloakJwtVerificador.php` (JWKS en caché); middleware en `src/Infrastructure/Http/Middleware/ProtegerConJwt.php`; errores problem+json en `Http/Problema.php`.
