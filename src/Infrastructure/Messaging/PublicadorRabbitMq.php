@@ -26,6 +26,8 @@ final class PublicadorRabbitMq implements PublicadorEventos
 
     private ?string $rechazo = null;
 
+    private ?float $ultimoUso = null;
+
     public function __construct(
         private readonly string $host,
         private readonly int $puerto,
@@ -35,6 +37,7 @@ final class PublicadorRabbitMq implements PublicadorEventos
         private readonly string $exchange,
         private readonly float $esperaSegundos,
         private readonly LoggerInterface $log,
+        private readonly ReconexionPorOciosidad $reconexion = new ReconexionPorOciosidad,
     ) {}
 
     public function publicar(MensajePendiente $mensaje): void
@@ -50,6 +53,7 @@ final class PublicadorRabbitMq implements PublicadorEventos
                 'type' => $mensaje->tipo,
             ]), $this->exchange, $mensaje->tipo, true);
             $canal->wait_for_pending_acks_returns($this->esperaSegundos);
+            $this->ultimoUso = microtime(true);
         } catch (\Throwable $e) {
             $this->descartarConexion();
             $this->log->warning('RabbitMQ no confirmó un mensaje del outbox', ['eventId' => $mensaje->id, 'tipo' => $mensaje->tipo, 'error' => $e->getMessage()]);
@@ -76,6 +80,10 @@ final class PublicadorRabbitMq implements PublicadorEventos
 
     private function canal(): AMQPChannel
     {
+        // Entre nubes, un flujo ocioso lo descarta el firewall sin avisar: tras un rato sin uso se abre una conexión nueva.
+        if ($this->reconexion->conviene($this->ultimoUso, microtime(true))) {
+            $this->descartarConexion();
+        }
         if ($this->canal !== null && $this->canal->is_open()) {
             return $this->canal;
         }

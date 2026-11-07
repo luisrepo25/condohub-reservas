@@ -90,7 +90,9 @@ final class ConsumidorRespuestasSaga
         $this->conexion = new AMQPStreamConnection(
             $this->host, $this->puerto, $this->usuario, $this->clave, $this->vhost,
             // Lectura más larga que cualquier intervalo de escucha: la espera sin mensajes no es un error de conexión.
-            false, 'AMQPLAIN', null, 'en_US', $this->esperaSegundos, max($this->esperaSegundos, 60.0),
+            // El heartbeat mantiene vivo el flujo entre nubes y detecta un corte silencioso (S2).
+            false, 'AMQPLAIN', null, 'en_US', $this->esperaSegundos, OpcionesAmqp::lecturaSegundos($this->esperaSegundos),
+            null, false, OpcionesAmqp::LATIDO_SEGUNDOS,
         );
         $canal = $this->conexion->channel();
         $canal->queue_declare($this->cola, true);
