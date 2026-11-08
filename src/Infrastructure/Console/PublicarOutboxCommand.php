@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CondoHub\Reservas\Infrastructure\Console;
 
 use CondoHub\Reservas\Application\UseCase\PublicarOutbox;
+use CondoHub\Reservas\Infrastructure\Messaging\LatidoDeVida;
 use Illuminate\Console\Command;
 
 /**
@@ -26,7 +27,15 @@ final class PublicarOutboxCommand extends Command
         $lote = (int) ($this->option('lote') ?? config('rabbitmq.outbox_lote'));
         $intervalo = max(1, (int) ($this->option('intervalo') ?? config('rabbitmq.outbox_intervalo_segundos')));
 
+        // Si una vuelta se cuelga (conexión rota entre nubes), un vigilante mata al proceso y Docker lo reinicia.
+        $maximo = (int) config('rabbitmq.outbox_vigilancia_segundos');
+        $latido = $maximo > 0 && ! $this->option('una-vez') ? LatidoDeVida::paraProcesoActual($maximo) : null;
+        if ($latido !== null && ! $latido->vigilar()) {
+            $this->warn('Sin vigilancia del publicador (¿proceso 1 sin init: true, o sin sh?)');
+        }
+
         do {
+            $latido?->latir();
             $resultado = $publicarOutbox->ejecutar($lote);
             if ($resultado->publicados > 0) {
                 $this->info("Publicados: {$resultado->publicados}");
